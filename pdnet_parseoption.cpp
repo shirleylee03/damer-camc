@@ -69,6 +69,17 @@ bool PRINT_GRAPH = false;
 
 extern void extract_criteria(int number,LTLCategory type,CPN *cpn,vector<string> &criteria);
 
+/**
+ * replace all clock() function to get better precision in time analysis, clock()
+ * offers minimum unit is 10ms. my_clock() is 0.001ms
+ * @return
+ */
+static clock_t my_clock() {
+    timespec ts;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
+    return ts.tv_sec*1000000+ts.tv_nsec/1000;
+}
+
 // run cmd and output
 int RunCmd(const std::string& cmd, std::string& out) {
     FILE* fp = popen(cmd.c_str(), "r");
@@ -165,7 +176,7 @@ void CHECKLTL(CPN *cpnet, LTLCategory type,int num,int &rgnum,string &res) {
 //    SBA.PrintStateBuchi();
 /*******************************************************/
     //cout << "begin:ON-THE-FLY" << endl;
-//    clock_t start=clock();
+//    clock_t start=my_clock();
     CPN_Product_Automata *product;
     product = new CPN_Product_Automata(cpnet, &SBA, graph);
     product->GetProduct();
@@ -173,7 +184,7 @@ void CHECKLTL(CPN *cpnet, LTLCategory type,int num,int &rgnum,string &res) {
     cout<<"\n";
     product->printresult(propertyid);
     result = product->GetResult();
-//    clock_t end = clock();
+//    clock_t end = my_clock();
 //
 //    cout<<"product time:"<<(start-end)/1000.0<<endl;
     cout<<"Synthesised graph node num: "<<graph->node_num<<endl;
@@ -381,6 +392,7 @@ string model_checking(string check_file,string property_file, LTLCategory ltltyp
         int pre_P_num, pre_T_num, pre_arc_num, pre_rgnode_num, slice_P_num, slice_T_num, slice_rgnode_num;
         clock_t pre_time, slice_time, pre_model, pre_check, slice, slice_check;
         string pre_res, slice_res;
+
         double base_clock = 1000.0;
 
         switch (ltltype) {
@@ -420,7 +432,7 @@ string model_checking(string check_file,string property_file, LTLCategory ltltyp
         cout << endl;
 
         clock_t direct_build_start;
-        direct_build_start = clock();
+        direct_build_start = my_clock();
 
         // init_pthread_type();
 
@@ -468,7 +480,7 @@ string model_checking(string check_file,string property_file, LTLCategory ltltyp
             readGraph(filename_prefix + ".txt", filename_prefix + ".dot");
             makeGraph(filename_prefix + ".dot", filename_prefix + ".png");
         }
-    clock_t direct_build_end = clock();
+    clock_t direct_build_end = my_clock();
 //    RG rg;
 //    rg.init(cpnet);
 //    rg.GENERATE(cpnet);
@@ -489,7 +501,7 @@ string model_checking(string check_file,string property_file, LTLCategory ltltyp
 
         auto place = cpnet->getplacearr();
 
-        clock_t slice_begin = clock();
+        clock_t slice_begin = my_clock();
 
         //5.slicing CPN
         for(int i=0;i<cpnet->deadloops.size();i++)
@@ -511,7 +523,7 @@ string model_checking(string check_file,string property_file, LTLCategory ltltyp
 
             if (hasHeu) //using heuritic
                 cpnet->generate_transPriNum();
-        clock_t slice_end = clock();
+        clock_t slice_end = my_clock();
         final_P.push_back("P0"); //alloc_store_P
 
         Bubble_sort(final_T);
@@ -536,7 +548,7 @@ string model_checking(string check_file,string property_file, LTLCategory ltltyp
     
             //3.verify CPN's properties
             CHECKLTL(cpnet, ltltype, num, pre_rgnode_num, pre_res);
-            clock_t model_check_end = clock();
+            clock_t model_check_end = my_clock();
 
             pre_model = (direct_build_end - direct_build_start);
             pre_check = (model_check_end - direct_build_end);
@@ -563,7 +575,7 @@ string model_checking(string check_file,string property_file, LTLCategory ltltyp
             }
         }
         else if(hasPDNetSlice){
-            clock_t slice_begin1 = clock();
+            clock_t slice_begin1 = my_clock();
             CPN *cpnet_slice = new CPN;
 
             cpnet_slice->copy_childNet(cpnet, final_P, final_T);
@@ -574,7 +586,7 @@ string model_checking(string check_file,string property_file, LTLCategory ltltyp
             //6.post_process
             post_process(cpnet, cpnet_slice, final_T);
 
-            clock_t slice_end1 = clock();
+            clock_t slice_end1 = my_clock();
 
             if (gen_picture) {
                 filename_prefix = "slice";
@@ -603,9 +615,9 @@ string model_checking(string check_file,string property_file, LTLCategory ltltyp
             csvFormatAppend(csvOutputStr, to_string(cpnet_slice->get_transcount()));
 
             //7.verify sliced property
-            clock_t slice_check_begin = clock();
+            clock_t slice_check_begin = my_clock();
             CHECKLTL(cpnet_slice, ltltype, num, slice_rgnode_num, slice_res);
-            clock_t slice_check_end = clock();
+            clock_t slice_check_end = my_clock();
 
             slice = (slice_end - slice_begin) + (slice_end1 - slice_begin1);
             pre_model = (direct_build_end - direct_build_start);
@@ -666,10 +678,10 @@ string model_checking(string check_file,string property_file, LTLCategory ltltyp
             Ps.clear();
             Ts.clear();
             clock_t slice_begin,slice_end;
-            slice_begin = clock();
+            slice_begin = my_clock();
             initCriteria(cpnet,criteria,Ps,Ts);
             traditionalAPNSlice(cpnet,Ps,Ts);
-            slice_end = clock();
+            slice_end = my_clock();
             Bubble_sort(Ps);
             Bubble_sort(Ts);
             CPN *cpnet_slice = new CPN;
@@ -697,9 +709,9 @@ string model_checking(string check_file,string property_file, LTLCategory ltltyp
             }
             // rgTest(cpnet_slice,"rgSlice.txt");
             clock_t slice_check_begin,slice_check_end;
-            slice_check_begin = clock();
+            slice_check_begin = my_clock();
             CHECKLTL(cpnet_slice, ltltype, num, slice_rgnode_num, slice_res);
-            slice_check_end = clock();
+            slice_check_end = my_clock();
 
             pre_model = (direct_build_end - direct_build_start);
             slice = (slice_end - slice_begin) + (slice_end - slice_begin);
@@ -770,14 +782,14 @@ void changeImpactAnalysis(string origin_filename, string new_filename,string pro
     }
 
     clock_t begin,end;
-    begin = clock();// time
+    begin = my_clock();// time
     int pre_P_num, pre_T_num, pre_arc_num, pre_rgnode_num, slice_P_num, slice_T_num, slice_rgnode_num;
     clock_t pre_time, slice_time, pre_model, pre_check, slice, slice_check;
     string pre_res, slice_res;
 
     // 1. Construct original PDNet
     clock_t begin_oriM, end_oriM; //end_oriM-begin_oriM the time to construct original model
-    begin_oriM = clock();
+    begin_oriM = my_clock();
     gtree *tree1 = create_tree(origin_filename);
     cut_tree(tree1);
     if (showtree) {
@@ -809,15 +821,15 @@ void changeImpactAnalysis(string origin_filename, string new_filename,string pro
         readGraph(filename_prefix + ".txt", filename_prefix + ".dot");
         makeGraph(filename_prefix + ".dot", filename_prefix + ".png");
     }
-    //end_newM = clock();
-    end_oriM = clock();// end construct original model
+    //end_newM = my_clock();
+    end_oriM = my_clock();// end construct original model
 
     /* ************************************* */
 
     clock_t begin_newM, end_newM; //end_newM-begin_newM the time to construct new model
-    begin_newM = clock();
+    begin_newM = my_clock();
     clock_t begin_chaDet, end_chaDet; // end_chaDet - begin_chaDet the time to change detection
-    begin_chaDet = clock();
+    begin_chaDet = my_clock();
     // 2. Construct the new tree
     gtree *tree2 = create_tree(new_filename);
     cut_tree(tree2);
@@ -837,18 +849,18 @@ void changeImpactAnalysis(string origin_filename, string new_filename,string pro
 
     // Extract changing nodes from the syntax tree
     vector<AST_change> changes = extract_change(tree1, tree2, M, M_statement);
-    end_chaDet = clock(); //end change detection
+    end_chaDet = my_clock(); //end change detection
 
     vector<string> criteria_change,final_P,final_T; //change criterion
     clock_t begin_mod, end_mod;
-    begin_mod = clock();
+    begin_mod = my_clock();
     //model modified
     criteria_change = changeConstruct(originCpnet,changes);
-    end_mod = clock(); //end construct modified model
-    end_newM = clock(); //end construct new model
+    end_mod = my_clock(); //end construct modified model
+    end_newM = my_clock(); //end construct new model
 
     clock_t begin_reuse, end_reuse;
-    begin_reuse = clock();
+    begin_reuse = my_clock();
     //forward slicing find change impact submodel final_P
     preWardSlicing(originCpnet,criteria_change,final_P,final_T);
     vector<string> criteria_prop,final_P1,final_T1;
@@ -867,8 +879,8 @@ void changeImpactAnalysis(string origin_filename, string new_filename,string pro
     auto res = getCommon(final_P,final_P1); //output whether the intersection is empty
     if(res.size() == 0) {
         cout << "Reuse the verified results!"<<endl; //reuse checking
-        end = clock();
-        end_reuse = clock();
+        end = my_clock();
+        end_reuse = my_clock();
         cout << "total time: " << (end-begin) / base_clock << "ms"<<endl;
         cout << "time to construct the previous model: " << (end_oriM - begin_oriM) / base_clock << "ms"<< endl;
         cout << "time to construct the modified model: " << (end_newM - begin_newM) / base_clock << "ms"<< endl;
@@ -888,18 +900,18 @@ void changeImpactAnalysis(string origin_filename, string new_filename,string pro
 
         exit(10);
     }
-    end_reuse = clock();
+    end_reuse = my_clock();
     cout << "Reuse checking failed！Model checking the PDNet slice again..." << endl;
 
 
     clock_t begin_repMC, end_repMC;// end_repMC-begin_repMC the time repeated model checking
-    begin_repMC = clock();
+    begin_repMC = my_clock();
     //Model checking again...
     originCpnet->InitDistance(criteria_prop); //Init distance Heuristic
 
     auto place = originCpnet->getplacearr();
 
-    clock_t slice_begin = clock();
+    clock_t slice_begin = my_clock();
     //5.slicing CPN
     criteria_prop.insert(criteria_prop.end(), originCpnet->deadloops.begin(), originCpnet->deadloops.end());
     criteria_prop.insert(criteria_prop.end(), originCpnet->otherLocks.begin(), originCpnet->otherLocks.end());
@@ -947,7 +959,7 @@ void changeImpactAnalysis(string origin_filename, string new_filename,string pro
                 , originCpnet->get_transcount());
 //    cout<<"  arcnum:"<<cpnet->get_arccount()<<endl;
         CHECKLTL(originCpnet, ltltype, num, pre_rgnode_num, pre_res);
-        end_repMC = clock();
+        end_repMC = my_clock();
     }
     else{//Use PDNet Slice
         CPN *cpnet_slice = new CPN;
@@ -960,7 +972,7 @@ void changeImpactAnalysis(string origin_filename, string new_filename,string pro
         //6.post_process
         post_process(originCpnet, cpnet_slice, final_T);
 
-        clock_t slice_end1 = clock();
+        clock_t slice_end1 = my_clock();
 
         if (gen_picture) {
             filename_prefix = "slice";
@@ -990,10 +1002,10 @@ void changeImpactAnalysis(string origin_filename, string new_filename,string pro
 
         //7.verify sliced CPN's property
         CHECKLTL(cpnet_slice, ltltype, num, slice_rgnode_num, slice_res);
-        end_repMC = clock();
+        end_repMC = my_clock();
     }
 
-    end = clock();
+    end = my_clock();
     // The time for replaying slicing model checking
     cout << "total time: "<< (end - begin) / base_clock << "ms" <<endl;
     cout << "time to construct the previous model: " << (end_oriM - begin_oriM) / base_clock << "ms"<< endl;
@@ -1101,7 +1113,7 @@ void cmdlinet::doit() {
             set<string> variables;
             extractStatementVariableNameFromXML(property_file,rows,variables);
             clock_t begin,end;
-            begin = clock();
+            begin = my_clock();
             ///Program slicing begin...
 //            auto programSliceRowMap = programSlice(filename);
             string cmd;
@@ -1125,7 +1137,7 @@ void cmdlinet::doit() {
                 runPS_3(cmd, ps_3_times, 3);//run and get three time
             ///Program slicing end...
             filename.replace(filename.find(".iii"),4,"-new_slice.iii");
-            end = clock();
+            end = my_clock();
             programSliceTime = (end-begin)/1000.0;
 //            cout << "time of program slice:"<<programSliceTime<<endl;
             if (hasTraditionalCIA)

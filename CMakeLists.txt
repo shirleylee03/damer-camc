@@ -1,11 +1,11 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 2.8)
 project(PDNet2_0)
 # include_directories("/usr/local/include")
 
 set(CMAKE_CXX_STANDARD 14)
 # set(CMAKE_CXX_COMPILER "/opt/homebrew/Cellar/gcc/11.2.0_1/bin/g++-11")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -pthread -O0")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -pthread -Ofast")
 # Fastest compilation optimization
 
 add_executable(PDNet2_0 main.cpp   v_table.cpp v_table.h y.tab.cpp y.tab.h lex.y.cpp

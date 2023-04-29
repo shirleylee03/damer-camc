@@ -1,7 +1,8 @@
-# DAMER-CAMC
+# DAMER 2.0
 
-A change-aware model checking tool based on PDNet.
+a concurrent program model checking tool based on PDNet.
 
+This project is an automatic tool for building a PDNet model of a concurrent program, and alleviate the state-explosion by PDNet slicing.
 The concurrent program using POSIX threads that must satisfy ANSI-C grammar.
 
 
@@ -111,9 +112,9 @@ The relevant use of tcmalloc is removed from the Mac branch.
 
 ## Usage
 
-- The 'test' folder is where we put the benchmarks of the manuscript.
-- Those *.c files is the program files for the previous version.
-- Those *-new.c files is the program files for the modified version.
+- The 'benchmarks' folder is where we put the benchmarks of the manuscript. 
+- The 'test' folder is where you put the test files.
+- Those *.c files is the original program files.
 
 First, you should switch to the 'build' directory:
 
@@ -125,19 +126,33 @@ $ chmod +x PDNet2_0
 
 $ chmod +x ../exe/cia
 
-$ ./PDNet2_0 [-showtree] [-showcpn] (-compare|-directbuild|-slice) ./test/(filename)
+$ ./PDNet2_0 [-showtree] [-showcpn] (-compare|-directbuild|-slice) ../test/(filename)
 
-Note: The contents in parentheses are required.
+Tips: The contents in parentheses are required
 
 For example:
 
-$ ./PDNet2_0 -CIA -PDNetSlice ../test/10_Lazy.c
+$ ./PDNet2_0 -PDNetSlice ../test/*.c
 
-$ ./PDNet2_0 -CIA -PDNetSlice -property ../test/10_Lazy.xml ../test/10_Lazy.c
+$ ./PDNet2_0 -NoDependence -ProgramSlice -property ../test/*.xml ../test/*.c
 
 More command can be seen with:
 
 $ ./PDNet2_0 -help
 
+## Script
 
-Note: formula-F.xml in the 'property' directory is the safety property for reach benchmark.  The XML files with the same name for each benchmark (i.e., *.xml) are the constraint properties.
+You can set PYTHON script run_test.py in the debug directory (build) to batch the testing files.
+
+We provide a scripts to run the experiments in the manuscript and reproduce the experimental results.
+
+$ chmod +x run_test.py
+
+$ sudo ./run_test.py
+
+After execution, csv files are the original result files in the 'build' directory.
+
+Note: 
+formula-F.xml in the 'benchmark' directory is the safety property for reach benchmark.  
+The XML files with the same name for each benchmark (i.e., *.xml) are the constraint properties.
+
